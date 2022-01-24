@@ -10,7 +10,6 @@ using MyJetWallet.Sdk.GrpcSchema;
 using MyJetWallet.Sdk.Service;
 using Prometheus;
 using ProtoBuf.Grpc.Server;
-using Service.Liquidity.Velocity.Grpc;
 using Service.Liquidity.Velocity.Modules;
 using Service.Liquidity.Velocity.Services;
 using SimpleTrading.BaseMetrics;
@@ -46,8 +45,6 @@ namespace Service.Liquidity.Velocity
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapGrpcSchema<HelloService, IHelloService>();
-
                 endpoints.MapGrpcSchemaRegistry();
 
                 endpoints.MapGet("/", async context =>
@@ -61,6 +58,7 @@ namespace Service.Liquidity.Velocity
         {
             builder.RegisterModule<SettingsModule>();
             builder.RegisterModule<ServiceModule>();
+            builder.RegisterModule<ClientsModule>();
         }
     }
 }
