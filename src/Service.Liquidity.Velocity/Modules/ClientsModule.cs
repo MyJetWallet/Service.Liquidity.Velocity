@@ -5,6 +5,7 @@ using MyJetWallet.Sdk.Grpc;
 using MyJetWallet.Sdk.NoSql;
 using Service.AssetsDictionary.Client.Grpc;
 using Service.AssetsDictionary.Grpc;
+using Service.Liquidity.TradingPortfolio.Client;
 using SimpleTrading.CandlesHistory.Grpc;
 
 
@@ -25,6 +26,8 @@ namespace Service.Liquidity.Velocity.Modules
             
             var factory = new SimpleTradingCandlesHistoryClientFactory(Program.Settings.CandlesServiceGrpcUrl);
             builder.RegisterInstance(factory.GetSimpleTradingCandlesHistoryService()).As<ISimpleTradingCandlesHistoryGrpc>().SingleInstance();
+
+            builder.RegisterLiquidityTradingPortfolioClient(Program.Settings.LiquidityTradingPortfolioServiceUrl);
         }
     }
 

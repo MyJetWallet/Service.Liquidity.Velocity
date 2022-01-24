@@ -4,9 +4,12 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using MyJetWallet.Domain;
 using MyJetWallet.Sdk.Service.Tools;
 using MyNoSqlServer.Abstractions;
 using Service.AssetsDictionary.Grpc;
+using Service.Liquidity.TradingPortfolio.Grpc;
+using Service.Liquidity.TradingPortfolio.Grpc.Models;
 using Service.Liquidity.Velocity.Domain.Models;
 using Service.Liquidity.Velocity.Domain.Models.NoSql;
 using Service.Liquidity.Velocity.Domain.Utils;
@@ -23,21 +26,23 @@ namespace Service.Liquidity.Velocity.Services
         private readonly ISpotInstrumentsDictionaryService _instrumentService;
         private readonly MyTaskTimer _operationsTimer;
         private readonly IMyNoSqlServerDataWriter<VelocityNoSql> _myNoSqlVelocityWriter;
-        private const int TimerSpan60Sec = 60;
-        
+        private readonly IManualInputService _manualInputService;
+        private const int TimerSpanSec = 3600;
         
         public VelocityCalcBackgroundService(
             ILogger<VelocityCalcBackgroundService> logger, 
             ISimpleTradingCandlesHistoryGrpc candlesHistory, 
             ISpotInstrumentsDictionaryService instrumentService, 
-            IMyNoSqlServerDataWriter<VelocityNoSql> myNoSqlVelocityWriter)
+            IMyNoSqlServerDataWriter<VelocityNoSql> myNoSqlVelocityWriter, 
+            IManualInputService manualInputService)
         {
             _logger = logger;
             _candlesHistory = candlesHistory;
             _instrumentService = instrumentService;
             _myNoSqlVelocityWriter = myNoSqlVelocityWriter;
+            _manualInputService = manualInputService;
             _operationsTimer = new MyTaskTimer(nameof(VelocityCalcBackgroundService), 
-                TimeSpan.FromSeconds(TimerSpan60Sec), logger, Process);
+                TimeSpan.FromSeconds(TimerSpanSec), logger, Process);
 
         }
         
@@ -53,6 +58,7 @@ namespace Service.Liquidity.Velocity.Services
 
         private async Task Process()
         {
+            
             
             var instrumentResponse = await _instrumentService.GetAllSpotInstrumentsAsync();
             var spotInstruments = instrumentResponse.SpotInstruments
@@ -113,6 +119,15 @@ namespace Service.Liquidity.Velocity.Services
                 velocity.Velocity.LowOpenAverage = lowOpenAverage;
                 velocity.Velocity.HighOpenAverage = highOpenAverage;
                 await _myNoSqlVelocityWriter.InsertOrReplaceAsync(velocity);
+
+                var response = await _manualInputService.SetVelocityAsync(new SetVelocityRequest
+                {
+                    Broker = DomainConstants.DefaultBroker,
+                    Asset = asset,
+                    User = "liquidity.velocity.service",
+                    VelocityLowOpen = lowOpenAverage,
+                    VelocityHighOpen = highOpenAverage
+                });
             }
         }
     }

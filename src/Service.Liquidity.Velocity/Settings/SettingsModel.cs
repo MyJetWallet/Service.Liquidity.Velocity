@@ -21,8 +21,9 @@ namespace Service.Liquidity.Velocity.Settings
         public string CandlesServiceGrpcUrl { get; set; }    
         
         [YamlProperty("LiquidityVelocity.AssetDictionaryGrpcServiceUrl")]
-        public string AssetDictionaryGrpcServiceUrl { get; set; }  
+        public string AssetDictionaryGrpcServiceUrl { get; set; }
         
-
+        [YamlProperty("LiquidityVelocity.LiquidityTradingPortfolioServiceUrl")]
+        public string LiquidityTradingPortfolioServiceUrl { get; set; }
     }
 }
