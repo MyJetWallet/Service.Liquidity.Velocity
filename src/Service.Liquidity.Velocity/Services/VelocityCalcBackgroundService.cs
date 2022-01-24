@@ -83,7 +83,7 @@ namespace Service.Liquidity.Velocity.Services
                 var lowOpenSum = 0.0;
                 var highOpenSum = 0.0;
 
-                var velocity = VelocityNoSql.Create(new Domain.Models.Velocity
+                var velocity = VelocityNoSql.Create(item.BrokerId, new Domain.Models.Velocity
                 {
                     Asset = asset,
                     LowOpenAverage = 0.0m,
