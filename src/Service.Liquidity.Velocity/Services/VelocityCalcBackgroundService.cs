@@ -27,8 +27,11 @@ namespace Service.Liquidity.Velocity.Services
         private readonly MyTaskTimer _operationsTimer;
         private readonly IMyNoSqlServerDataWriter<VelocityNoSql> _myNoSqlVelocityWriter;
         private readonly IManualInputService _manualInputService;
+#if DEBUG
+        private const int TimerSpanSec = 30;
+#else
         private const int TimerSpanSec = 3600;
-        
+#endif        
         public VelocityCalcBackgroundService(
             ILogger<VelocityCalcBackgroundService> logger, 
             ISimpleTradingCandlesHistoryGrpc candlesHistory, 
@@ -72,7 +75,7 @@ namespace Service.Liquidity.Velocity.Services
                 var current = DateTime.UtcNow;
                 var from = CalendarUtils.TwoWeeksBefore(current);
                 var to = CalendarUtils.OneDayBefore(current);
-                var coef = item.QuoteAsset == "USD" ? 1 : -1;  
+                //var coef = item.QuoteAsset == "USD" ? 1 : -1;  
                 var asset = item.QuoteAsset == "USD" ? item.BaseAsset : item.QuoteAsset;  
                 
                 // Get history
@@ -113,11 +116,11 @@ namespace Service.Liquidity.Velocity.Services
                     highOpenSum += candle.High / candle.Open;
                 }
                 
-                var lowOpenAverage = Convert.ToDecimal(Math.Pow(lowOpenSum / candels.Count, coef));
-                var highOpenAverage = Convert.ToDecimal(Math.Pow(highOpenSum / candels.Count, coef));
+                var lowOpenAverage = Convert.ToDecimal(lowOpenSum / candels.Count);
+                var highOpenAverage = Convert.ToDecimal(highOpenSum / candels.Count);
 
-                velocity.Velocity.LowOpenAverage = lowOpenAverage;
-                velocity.Velocity.HighOpenAverage = highOpenAverage;
+                velocity.Velocity.LowOpenAverage = (lowOpenAverage - 1m)*100m;
+                velocity.Velocity.HighOpenAverage = (highOpenAverage - 1m)*100;
                 await _myNoSqlVelocityWriter.InsertOrReplaceAsync(velocity);
 
                 var response = await _manualInputService.SetVelocityAsync(new SetVelocityRequest
