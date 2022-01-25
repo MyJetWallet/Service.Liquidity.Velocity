@@ -128,8 +128,8 @@ namespace Service.Liquidity.Velocity.Services
                     Broker = DomainConstants.DefaultBroker,
                     Asset = asset,
                     User = "liquidity.velocity.service",
-                    VelocityLowOpen = lowOpenAverage,
-                    VelocityHighOpen = highOpenAverage
+                    VelocityLowOpen = velocity.Velocity.LowOpenAverage,
+                    VelocityHighOpen = velocity.Velocity.HighOpenAverage
                 });
             }
         }
