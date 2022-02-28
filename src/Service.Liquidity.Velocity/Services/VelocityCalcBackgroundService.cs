@@ -31,12 +31,12 @@ namespace Service.Liquidity.Velocity.Services
         private const int TimerSpanSec = 30;
 #else
         private const int TimerSpanSec = 3600;
-#endif        
+#endif
         public VelocityCalcBackgroundService(
-            ILogger<VelocityCalcBackgroundService> logger, 
-            ISimpleTradingCandlesHistoryGrpc candlesHistory, 
-            ISpotInstrumentsDictionaryService instrumentService, 
-            IMyNoSqlServerDataWriter<VelocityNoSql> myNoSqlVelocityWriter, 
+            ILogger<VelocityCalcBackgroundService> logger,
+            ISimpleTradingCandlesHistoryGrpc candlesHistory,
+            ISpotInstrumentsDictionaryService instrumentService,
+            IMyNoSqlServerDataWriter<VelocityNoSql> myNoSqlVelocityWriter,
             IManualInputService manualInputService)
         {
             _logger = logger;
@@ -44,11 +44,10 @@ namespace Service.Liquidity.Velocity.Services
             _instrumentService = instrumentService;
             _myNoSqlVelocityWriter = myNoSqlVelocityWriter;
             _manualInputService = manualInputService;
-            _operationsTimer = new MyTaskTimer(nameof(VelocityCalcBackgroundService), 
+            _operationsTimer = new MyTaskTimer(nameof(VelocityCalcBackgroundService),
                 TimeSpan.FromSeconds(TimerSpanSec), logger, Process);
-
         }
-        
+
         public void Start()
         {
             _operationsTimer.Start();
@@ -61,34 +60,32 @@ namespace Service.Liquidity.Velocity.Services
 
         private async Task Process()
         {
-            
-            
             var instrumentResponse = await _instrumentService.GetAllSpotInstrumentsAsync();
             var spotInstruments = instrumentResponse.SpotInstruments
                 .Where(e => e.BaseAsset == "USD" || e.QuoteAsset == "USD")
                 .ToList();
+
             foreach (var item in spotInstruments)
             {
-
                 var symbol = item.Symbol;
                 var candleType = CandleType.Day;
                 var current = DateTime.UtcNow;
                 var from = CalendarUtils.TwoWeeksBefore(current);
                 var to = CalendarUtils.OneDayBefore(current);
                 //var coef = item.QuoteAsset == "USD" ? 1 : -1;  
-                var asset = item.QuoteAsset == "USD" ? item.BaseAsset : item.QuoteAsset;  
-                
-                // Get history
-                var data = await _candlesHistory.GetCandlesHistoryAsync(new GetCandlesHistoryGrpcRequestContract()
-                {
-                    Bid = true,
-                    Instrument = symbol,
-                    CandleType = candleType,
-                    From = from,
-                    To = to
-                });
+                var asset = item.QuoteAsset == "USD" ? item.BaseAsset : item.QuoteAsset;
 
-                var candels = data.OrderByDescending(e => e.DateTime).ToList();
+                var candles = (await _candlesHistory.GetCandlesHistoryAsync(new GetCandlesHistoryGrpcRequestContract
+                    {
+                        Bid = true,
+                        Instrument = symbol,
+                        CandleType = candleType,
+                        From = from,
+                        To = to
+                    }))
+                    .OrderByDescending(e => e.DateTime)
+                    .ToList();
+
                 var lowOpenSum = 0.0;
                 var highOpenSum = 0.0;
 
@@ -100,27 +97,27 @@ namespace Service.Liquidity.Velocity.Services
                     CalcDate = DateTime.UtcNow
                 });
 
-                if (candels.Count == 0)
+                if (candles.Count == 0)
                 {
                     await _myNoSqlVelocityWriter.InsertOrReplaceAsync(velocity);
                     continue;
                 }
-            
+
                 // Calc Mid and Usd
-                foreach (var candle in candels)
+                foreach (var candle in candles)
                 {
-                    if(candle.Open == 0.0)
+                    if (candle.Open == 0.0)
                         continue;
-                    
+
                     lowOpenSum += candle.Low / candle.Open;
                     highOpenSum += candle.High / candle.Open;
                 }
-                
-                var lowOpenAverage = Convert.ToDecimal(lowOpenSum / candels.Count);
-                var highOpenAverage = Convert.ToDecimal(highOpenSum / candels.Count);
 
-                velocity.Velocity.LowOpenAverage = (lowOpenAverage - 1m)*100m;
-                velocity.Velocity.HighOpenAverage = (highOpenAverage - 1m)*100;
+                var lowOpenAverage = Convert.ToDecimal(lowOpenSum / candles.Count);
+                var highOpenAverage = Convert.ToDecimal(highOpenSum / candles.Count);
+
+                velocity.Velocity.LowOpenAverage = (lowOpenAverage - 1m) * 100m;
+                velocity.Velocity.HighOpenAverage = (highOpenAverage - 1m) * 100;
                 await _myNoSqlVelocityWriter.InsertOrReplaceAsync(velocity);
 
                 var response = await _manualInputService.SetVelocityAsync(new SetVelocityRequest
