@@ -15,28 +15,19 @@ namespace Service.Liquidity.Velocity.Modules
     {
         protected override void Load(ContainerBuilder builder)
         {
-            // var myNoSqlClient = builder.CreateNoSqlClient(
-            //     Program.ReloadedSettings(e => e.MyNoSqlReaderHostPort));
-            
             var assetDictionaryFactory = new AssetsDictionaryClientFactory(Program.Settings.AssetDictionaryGrpcServiceUrl);
             builder
                 .RegisterInstance(assetDictionaryFactory.GetSpotInstrumentsDictionaryService())
                 .As<ISpotInstrumentsDictionaryService>()
                 .SingleInstance();
-            
-            var factory = new SimpleTradingCandlesHistoryClientFactory(Program.Settings.CandlesServiceGrpcUrl);
-            builder.RegisterInstance(factory.GetSimpleTradingCandlesHistoryService()).As<ISimpleTradingCandlesHistoryGrpc>().SingleInstance();
+
+            var factory = new MyGrpcClientFactory(Program.Settings.CandlesServiceGrpcUrl);
+            builder
+                .RegisterInstance(factory.CreateGrpcService<ISimpleTradingCandlesHistoryGrpc>())
+                .As<ISimpleTradingCandlesHistoryGrpc>()
+                .SingleInstance();
 
             builder.RegisterLiquidityTradingPortfolioClient(Program.Settings.LiquidityTradingPortfolioServiceUrl);
         }
-    }
-
-    [UsedImplicitly]
-    public class SimpleTradingCandlesHistoryClientFactory: MyGrpcClientFactory
-    {
-        public SimpleTradingCandlesHistoryClientFactory(string grpcServiceUrl) : base(grpcServiceUrl)
-        {
-        }
-        public ISimpleTradingCandlesHistoryGrpc GetSimpleTradingCandlesHistoryService() => CreateGrpcService<ISimpleTradingCandlesHistoryGrpc>();
     }
 }

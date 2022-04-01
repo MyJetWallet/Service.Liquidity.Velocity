@@ -19,9 +19,9 @@ using SimpleTrading.CandlesHistory.Grpc.Contracts;
 
 namespace Service.Liquidity.Velocity.Services
 {
-    public class VelocityCalcBackgroundService
+    public class LiquidityVelocityCalcBackgroundService
     {
-        private readonly ILogger<VelocityCalcBackgroundService> _logger;
+        private readonly ILogger<LiquidityVelocityCalcBackgroundService> _logger;
         private readonly ISimpleTradingCandlesHistoryGrpc _candlesHistory;
         private readonly ISpotInstrumentsDictionaryService _instrumentService;
         private readonly MyTaskTimer _operationsTimer;
@@ -32,8 +32,8 @@ namespace Service.Liquidity.Velocity.Services
 #else
         private const int TimerSpanSec = 3600;
 #endif
-        public VelocityCalcBackgroundService(
-            ILogger<VelocityCalcBackgroundService> logger,
+        public LiquidityVelocityCalcBackgroundService(
+            ILogger<LiquidityVelocityCalcBackgroundService> logger,
             ISimpleTradingCandlesHistoryGrpc candlesHistory,
             ISpotInstrumentsDictionaryService instrumentService,
             IMyNoSqlServerDataWriter<VelocityNoSql> myNoSqlVelocityWriter,
@@ -44,7 +44,7 @@ namespace Service.Liquidity.Velocity.Services
             _instrumentService = instrumentService;
             _myNoSqlVelocityWriter = myNoSqlVelocityWriter;
             _manualInputService = manualInputService;
-            _operationsTimer = new MyTaskTimer(nameof(VelocityCalcBackgroundService),
+            _operationsTimer = new MyTaskTimer(nameof(LiquidityVelocityCalcBackgroundService),
                 TimeSpan.FromSeconds(TimerSpanSec), logger, Process);
         }
 
