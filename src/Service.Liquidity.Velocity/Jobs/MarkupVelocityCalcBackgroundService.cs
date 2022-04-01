@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using MyJetWallet.Domain;
 using MyJetWallet.Sdk.Service.Tools;
 using MyNoSqlServer.Abstractions;
 using Service.AssetsDictionary.Grpc;
@@ -16,7 +13,7 @@ using SimpleTrading.Abstraction.Candles;
 using SimpleTrading.CandlesHistory.Grpc;
 using SimpleTrading.CandlesHistory.Grpc.Contracts;
 
-namespace Service.Liquidity.Velocity.Services
+namespace Service.Liquidity.Velocity.Jobs
 {
     public class MarkupVelocityCalcBackgroundService
     {

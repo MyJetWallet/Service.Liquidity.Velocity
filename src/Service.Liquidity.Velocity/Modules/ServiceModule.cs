@@ -4,7 +4,7 @@ using Autofac.Core.Registration;
 using MyJetWallet.Sdk.NoSql;
 using MyNoSqlServer.DataReader;
 using Service.Liquidity.Velocity.Domain.Models.NoSql;
-using Service.Liquidity.Velocity.Services;
+using Service.Liquidity.Velocity.Jobs;
 
 namespace Service.Liquidity.Velocity.Modules
 {

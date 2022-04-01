@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -10,14 +8,13 @@ using MyNoSqlServer.Abstractions;
 using Service.AssetsDictionary.Grpc;
 using Service.Liquidity.TradingPortfolio.Grpc;
 using Service.Liquidity.TradingPortfolio.Grpc.Models;
-using Service.Liquidity.Velocity.Domain.Models;
 using Service.Liquidity.Velocity.Domain.Models.NoSql;
 using Service.Liquidity.Velocity.Domain.Utils;
 using SimpleTrading.Abstraction.Candles;
 using SimpleTrading.CandlesHistory.Grpc;
 using SimpleTrading.CandlesHistory.Grpc.Contracts;
 
-namespace Service.Liquidity.Velocity.Services
+namespace Service.Liquidity.Velocity.Jobs
 {
     public class LiquidityVelocityCalcBackgroundService
     {
