@@ -22,7 +22,6 @@ namespace Service.Liquidity.Velocity.Jobs
         private readonly ISpotInstrumentsDictionaryService _instrumentService;
         private readonly MyTaskTimer _operationsTimer;
         private readonly IMyNoSqlServerDataWriter<MarkupVelocityNoSql> _myNoSqlVelocityWriter;
-        private readonly IManualInputService _manualInputService;
 #if DEBUG
         private const int TimerSpanSec = 30;
         private const uint PeriodMin = 200;
@@ -34,14 +33,12 @@ namespace Service.Liquidity.Velocity.Jobs
             ILogger<MarkupVelocityCalcBackgroundService> logger,
             ISimpleTradingCandlesHistoryGrpc candlesHistory,
             ISpotInstrumentsDictionaryService instrumentService,
-            IMyNoSqlServerDataWriter<MarkupVelocityNoSql> myNoSqlVelocityWriter,
-            IManualInputService manualInputService)
+            IMyNoSqlServerDataWriter<MarkupVelocityNoSql> myNoSqlVelocityWriter)
         {
             _logger = logger;
             _candlesHistory = candlesHistory;
             _instrumentService = instrumentService;
             _myNoSqlVelocityWriter = myNoSqlVelocityWriter;
-            _manualInputService = manualInputService;
             _operationsTimer = new MyTaskTimer(nameof(MarkupVelocityCalcBackgroundService),
                 TimeSpan.FromSeconds(TimerSpanSec), logger, Process);
         }

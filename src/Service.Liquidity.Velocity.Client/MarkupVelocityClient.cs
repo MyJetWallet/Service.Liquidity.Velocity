@@ -26,7 +26,7 @@ public class MarkupVelocityClient : IMarkupVelocityClient, IStartable
     
     public MarkupVelocityNoSql GetVelocityByAsset(string brokerId, string asset)
     {
-        var entity = _readerAssets.Get(MarkupVelocityNoSql.GeneratePartitionKey(brokerId), VelocityNoSql.GenerateRowKey(asset));
+        var entity = _readerAssets.Get(MarkupVelocityNoSql.GeneratePartitionKey(brokerId), MarkupVelocityNoSql.GenerateRowKey(asset));
         return entity;
     }
 
