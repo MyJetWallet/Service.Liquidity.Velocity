@@ -32,7 +32,7 @@ namespace Service.Liquidity.Velocity
 
         public static void Main(string[] args)
         {
-            Console.Title = "MyJetWallet Service.Liquidity.Velocity";
+            Console.Title = "MyJetWallet Service.Liquidity.Settings";
 
             Settings = SettingsReader.GetSettings<SettingsModel>(SettingsFileName);
 

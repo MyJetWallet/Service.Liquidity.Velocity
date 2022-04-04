@@ -2,12 +2,13 @@
 using MyJetWallet.Sdk.NoSql;
 using MyNoSqlServer.DataReader;
 using Service.Liquidity.Velocity.Domain.Models.NoSql;
+using Service.Liquidity.Velocity.Grpc;
 
 // ReSharper disable UnusedMember.Global
 
 namespace Service.Liquidity.Velocity.Client
 {
-    public static class LiquidityVelocityAutofacHelper
+    public static class AutofacHelper
     {
         /// <summary>
         /// Register interface ILiquidityVelocityClient
@@ -35,6 +36,26 @@ namespace Service.Liquidity.Velocity.Client
                 .As<IMarkupVelocityClient>()
                 .AutoActivate()
                 .SingleInstance();
+        }
+
+        /// <summary>
+        /// Register interface IMarkupVelocityClient
+        /// </summary>
+        public static void RegisterMarkupVelocitySettingsClient(this ContainerBuilder builder,
+            MyNoSqlTcpClient myNoSqlcClient)
+        {
+            builder.RegisterMyNoSqlReader<MarkupVelocitySettingsNoSql>(myNoSqlcClient, MarkupVelocitySettingsNoSql.TableName);
+            builder
+                .RegisterType<MarkupVelocitySettingsClient>()
+                .As<IMarkupVelocitySettingsClient>()
+                .AutoActivate()
+                .SingleInstance();
+        }
+
+        public static void MarkupVelocityClient(this ContainerBuilder builder, string grpcServiceUrl)
+        {
+            var factory = new MarkupVelocityClientFactory(grpcServiceUrl);
+            builder.RegisterInstance(factory.GetManualInputService()).As<IMarkupVelocityService>().SingleInstance();
         }
     }
     

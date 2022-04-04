@@ -22,23 +22,26 @@ namespace Service.Liquidity.Velocity.Jobs
         private readonly ISpotInstrumentsDictionaryService _instrumentService;
         private readonly MyTaskTimer _operationsTimer;
         private readonly IMyNoSqlServerDataWriter<MarkupVelocityNoSql> _myNoSqlVelocityWriter;
+        private readonly IMyNoSqlServerDataWriter<MarkupVelocitySettingsNoSql> _myNoSqlVelocitySettingsReader;
 #if DEBUG
         private const int TimerSpanSec = 30;
-        private const uint PeriodMin = 200;
+        private const uint DefaultPeriodMin = 200;
 #else
         private const int TimerSpanSec = 60;
-        private const uint PeriodMin = 200;
+        private const uint DefaultPeriodMin = 200;
 #endif
         public MarkupVelocityCalcBackgroundService(
             ILogger<MarkupVelocityCalcBackgroundService> logger,
             ISimpleTradingCandlesHistoryGrpc candlesHistory,
             ISpotInstrumentsDictionaryService instrumentService,
-            IMyNoSqlServerDataWriter<MarkupVelocityNoSql> myNoSqlVelocityWriter)
+            IMyNoSqlServerDataWriter<MarkupVelocityNoSql> myNoSqlVelocityWriter,
+            IMyNoSqlServerDataWriter<MarkupVelocitySettingsNoSql> myNoSqlVelocitySettingsReader)
         {
             _logger = logger;
             _candlesHistory = candlesHistory;
             _instrumentService = instrumentService;
             _myNoSqlVelocityWriter = myNoSqlVelocityWriter;
+            _myNoSqlVelocitySettingsReader = myNoSqlVelocitySettingsReader;
             _operationsTimer = new MyTaskTimer(nameof(MarkupVelocityCalcBackgroundService),
                 TimeSpan.FromSeconds(TimerSpanSec), logger, Process);
         }
@@ -62,13 +65,15 @@ namespace Service.Liquidity.Velocity.Jobs
 
             foreach (var item in spotInstruments)
             {
-                var period = PeriodMin;
+                var asset = item.QuoteAsset == "USD" ? item.BaseAsset : item.QuoteAsset;
                 var candleType = CandleType.Minute;
                 var current = DateTime.UtcNow;
+                var symbol = item.Symbol;
+
+                var assetSettings = await _myNoSqlVelocitySettingsReader.GetAsync(item.BrokerId, asset);
+                var period = assetSettings == null ?  DefaultPeriodMin : assetSettings.Settings.Period;
                 var from = CalendarUtils.CountOfMinutesBefore(current, period);
                 var to = CalendarUtils.OneMinuteBefore(current);
-                var symbol = item.Symbol;
-                var asset = item.QuoteAsset == "USD" ? item.BaseAsset : item.QuoteAsset;
 
                 var candles = (await _candlesHistory.GetCandlesHistoryAsync(
                         new GetCandlesHistoryGrpcRequestContract
@@ -81,26 +86,27 @@ namespace Service.Liquidity.Velocity.Jobs
                     }))
                     .OrderBy(e => e.DateTime)
                     .ToList();
-
-                var calculatedItem = MarkupVelocityNoSql.Create(item.BrokerId, CreateDefaultItem(asset));
-                var velocityItem = calculatedItem.Velocity;
+                
                 var first = candles.FirstOrDefault();
                 var last = candles.LastOrDefault();
-                velocityItem.CanTrust = (candles.Count != 0 && candles.Count == period);
-                velocityItem.Velocity = (Convert.ToDecimal(last?.Close) - Convert.ToDecimal(first?.Open)) / 100;
-                await _myNoSqlVelocityWriter.InsertOrReplaceAsync(calculatedItem);
+                var velocity = (Convert.ToDecimal(last?.Close) - Convert.ToDecimal(first?.Open)) / 100;
+                var canTrust = (candles.Count != 0 && candles.Count == period);
+                var velocityItem = CreateMyNoSqlItem(asset, velocity, period, DateTime.UtcNow, canTrust);
+
+                await _myNoSqlVelocityWriter.InsertOrReplaceAsync(MarkupVelocityNoSql.Create(item.BrokerId, velocityItem));
             }
         }
 
-        private MarkupVelocity CreateDefaultItem(string asset)
+        private MarkupVelocity CreateMyNoSqlItem(string asset, decimal velocity, uint period, 
+            DateTime date, bool canTrust)
         {
             return new Domain.Models.MarkupVelocity
             {
                 Asset = asset,
-                Velocity = 0,
-                Period = 0,
-                CalcDateTime = DateTime.UtcNow,
-                CanTrust = false
+                Velocity = velocity,
+                Period = period,
+                CalcDateTime = date,
+                CanTrust = canTrust
             };
         }
 

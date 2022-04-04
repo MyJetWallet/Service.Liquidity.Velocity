@@ -18,6 +18,9 @@ namespace Service.Liquidity.Velocity.Modules
             builder.RegisterMyNoSqlWriter<MarkupVelocityNoSql>(
                 () => Program.Settings.MyNoSqlWriterUrl, MarkupVelocityNoSql.TableName);
 
+            builder.RegisterMyNoSqlWriter<MarkupVelocitySettingsNoSql>(
+                () => Program.Settings.MyNoSqlWriterUrl, MarkupVelocitySettingsNoSql.TableName);
+
             builder.RegisterType<LiquidityVelocityCalcBackgroundService>()
                 .SingleInstance()
                 .AutoActivate()
