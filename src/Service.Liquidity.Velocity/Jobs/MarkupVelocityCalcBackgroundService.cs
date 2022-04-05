@@ -58,46 +58,53 @@ namespace Service.Liquidity.Velocity.Jobs
 
         private async Task Process()
         {
-            var instrumentResponse = await _instrumentService.GetAllSpotInstrumentsAsync();
-            var spotInstruments = instrumentResponse.SpotInstruments
-                .Where(e => e.BaseAsset == "USD" || e.QuoteAsset == "USD")
-                .ToList();
-
-            foreach (var item in spotInstruments)
+            try
             {
-                var asset = item.QuoteAsset == "USD" ? item.BaseAsset : item.QuoteAsset;
-                var candleType = CandleType.Minute;
-                var current = DateTime.UtcNow;
-                var symbol = item.Symbol;
-
-                var assetSettings = await _myNoSqlVelocitySettingsReader.GetAsync(item.BrokerId, asset);
-                var period = assetSettings == null ?  DefaultPeriodMin : assetSettings.Settings.Period;
-                var from = CalendarUtils.CountOfMinutesBefore(current, period);
-                var to = CalendarUtils.OneMinuteBefore(current);
-
-                var candles = (await _candlesHistory.GetCandlesHistoryAsync(
-                        new GetCandlesHistoryGrpcRequestContract
-                    {
-                        Bid = true,
-                        Instrument = symbol,
-                        CandleType = candleType,
-                        From = from,
-                        To = to
-                    }))
-                    .OrderBy(e => e.DateTime)
+                var instrumentResponse = await _instrumentService.GetAllSpotInstrumentsAsync();
+                var spotInstruments = instrumentResponse.SpotInstruments
+                    .Where(e => e.BaseAsset == "USD" || e.QuoteAsset == "USD")
                     .ToList();
-                
-                var first = candles.FirstOrDefault();
-                var last = candles.LastOrDefault();
-                var velocity = (Convert.ToDecimal(last?.Close) - Convert.ToDecimal(first?.Open)) / 100;
-                var canTrust = (candles.Count != 0 && candles.Count == period);
-                var velocityItem = CreateMyNoSqlItem(asset, velocity, period, DateTime.UtcNow, canTrust);
 
-                await _myNoSqlVelocityWriter.InsertOrReplaceAsync(MarkupVelocityNoSql.Create(item.BrokerId, velocityItem));
+                foreach (var item in spotInstruments)
+                {
+                    var asset = item.QuoteAsset == "USD" ? item.BaseAsset : item.QuoteAsset;
+                    var candleType = CandleType.Minute;
+                    var current = DateTime.UtcNow;
+                    var symbol = item.Symbol;
+
+                    var assetSettings = await _myNoSqlVelocitySettingsReader.GetAsync(item.BrokerId, asset);
+                    var period = assetSettings == null ? DefaultPeriodMin : assetSettings.Settings.Period;
+                    var from = CalendarUtils.CountOfMinutesBefore(current, period);
+                    var to = CalendarUtils.OneMinuteBefore(current);
+
+                    var candles = (await _candlesHistory.GetCandlesHistoryAsync(
+                            new GetCandlesHistoryGrpcRequestContract
+                            {
+                                Bid = true,
+                                Instrument = symbol,
+                                CandleType = candleType,
+                                From = from,
+                                To = to
+                            }))
+                        .OrderBy(e => e.DateTime)
+                        .ToList();
+
+                    var first = candles.FirstOrDefault();
+                    var last = candles.LastOrDefault();
+                    var velocity = (Convert.ToDecimal(last?.Close) - Convert.ToDecimal(first?.Open)) / 100;
+                    var canTrust = (candles.Count != 0 && candles.Count == period);
+                    var velocityItem = CreateMyNoSqlItem(asset, velocity, period, DateTime.UtcNow, canTrust);
+
+                    await _myNoSqlVelocityWriter.InsertOrReplaceAsync(MarkupVelocityNoSql.Create(item.BrokerId, velocityItem));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical(ex, ex.Message);
             }
         }
 
-        private MarkupVelocity CreateMyNoSqlItem(string asset, decimal velocity, uint period, 
+        private MarkupVelocity CreateMyNoSqlItem(string asset, decimal velocity, uint period,
             DateTime date, bool canTrust)
         {
             return new Domain.Models.MarkupVelocity

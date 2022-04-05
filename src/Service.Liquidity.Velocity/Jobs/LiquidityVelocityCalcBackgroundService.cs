@@ -57,74 +57,81 @@ namespace Service.Liquidity.Velocity.Jobs
 
         private async Task Process()
         {
-            var instrumentResponse = await _instrumentService.GetAllSpotInstrumentsAsync();
-            var spotInstruments = instrumentResponse.SpotInstruments
-                .Where(e => e.BaseAsset == "USD" || e.QuoteAsset == "USD")
-                .ToList();
-
-            foreach (var item in spotInstruments)
+            try
             {
-                var symbol = item.Symbol;
-                var candleType = CandleType.Day;
-                var current = DateTime.UtcNow;
-                var from = CalendarUtils.TwoWeeksBefore(current);
-                var to = CalendarUtils.OneDayBefore(current);
-                //var coef = item.QuoteAsset == "USD" ? 1 : -1;  
-                var asset = item.QuoteAsset == "USD" ? item.BaseAsset : item.QuoteAsset;
-
-                var candles = (await _candlesHistory.GetCandlesHistoryAsync(new GetCandlesHistoryGrpcRequestContract
-                    {
-                        Bid = true,
-                        Instrument = symbol,
-                        CandleType = candleType,
-                        From = from,
-                        To = to
-                    }))
-                    .OrderByDescending(e => e.DateTime)
+                var instrumentResponse = await _instrumentService.GetAllSpotInstrumentsAsync();
+                var spotInstruments = instrumentResponse.SpotInstruments
+                    .Where(e => e.BaseAsset == "USD" || e.QuoteAsset == "USD")
                     .ToList();
 
-                var lowOpenSum = 0.0;
-                var highOpenSum = 0.0;
-
-                var velocity = VelocityNoSql.Create(item.BrokerId, new Domain.Models.Velocity
+                foreach (var item in spotInstruments)
                 {
-                    Asset = asset,
-                    LowOpenAverage = 0.0m,
-                    HighOpenAverage = 0.0m,
-                    CalcDate = DateTime.UtcNow
-                });
+                    var symbol = item.Symbol;
+                    var candleType = CandleType.Day;
+                    var current = DateTime.UtcNow;
+                    var from = CalendarUtils.TwoWeeksBefore(current);
+                    var to = CalendarUtils.OneDayBefore(current);
+                    //var coef = item.QuoteAsset == "USD" ? 1 : -1;  
+                    var asset = item.QuoteAsset == "USD" ? item.BaseAsset : item.QuoteAsset;
 
-                if (candles.Count == 0)
-                {
-                    await _myNoSqlVelocityWriter.InsertOrReplaceAsync(velocity);
-                    continue;
-                }
+                    var candles = (await _candlesHistory.GetCandlesHistoryAsync(new GetCandlesHistoryGrpcRequestContract
+                        {
+                            Bid = true,
+                            Instrument = symbol,
+                            CandleType = candleType,
+                            From = from,
+                            To = to
+                        }))
+                        .OrderByDescending(e => e.DateTime)
+                        .ToList();
 
-                // Calc Mid and Usd
-                foreach (var candle in candles)
-                {
-                    if (candle.Open == 0.0)
+                    var lowOpenSum = 0.0;
+                    var highOpenSum = 0.0;
+
+                    var velocity = VelocityNoSql.Create(item.BrokerId, new Domain.Models.Velocity
+                    {
+                        Asset = asset,
+                        LowOpenAverage = 0.0m,
+                        HighOpenAverage = 0.0m,
+                        CalcDate = DateTime.UtcNow
+                    });
+
+                    if (candles.Count == 0)
+                    {
+                        await _myNoSqlVelocityWriter.InsertOrReplaceAsync(velocity);
                         continue;
+                    }
 
-                    lowOpenSum += candle.Low / candle.Open;
-                    highOpenSum += candle.High / candle.Open;
+                    // Calc Mid and Usd
+                    foreach (var candle in candles)
+                    {
+                        if (candle.Open == 0.0)
+                            continue;
+
+                        lowOpenSum += candle.Low / candle.Open;
+                        highOpenSum += candle.High / candle.Open;
+                    }
+
+                    var lowOpenAverage = Convert.ToDecimal(lowOpenSum / candles.Count);
+                    var highOpenAverage = Convert.ToDecimal(highOpenSum / candles.Count);
+
+                    velocity.Velocity.LowOpenAverage = (lowOpenAverage - 1m) * 100m;
+                    velocity.Velocity.HighOpenAverage = (highOpenAverage - 1m) * 100;
+                    await _myNoSqlVelocityWriter.InsertOrReplaceAsync(velocity);
+
+                    var response = await _manualInputService.SetVelocityAsync(new SetVelocityRequest
+                    {
+                        Broker = DomainConstants.DefaultBroker,
+                        Asset = asset,
+                        User = "liquidity.velocity.service",
+                        VelocityLowOpen = velocity.Velocity.LowOpenAverage,
+                        VelocityHighOpen = velocity.Velocity.HighOpenAverage
+                    });
                 }
-
-                var lowOpenAverage = Convert.ToDecimal(lowOpenSum / candles.Count);
-                var highOpenAverage = Convert.ToDecimal(highOpenSum / candles.Count);
-
-                velocity.Velocity.LowOpenAverage = (lowOpenAverage - 1m) * 100m;
-                velocity.Velocity.HighOpenAverage = (highOpenAverage - 1m) * 100;
-                await _myNoSqlVelocityWriter.InsertOrReplaceAsync(velocity);
-
-                var response = await _manualInputService.SetVelocityAsync(new SetVelocityRequest
-                {
-                    Broker = DomainConstants.DefaultBroker,
-                    Asset = asset,
-                    User = "liquidity.velocity.service",
-                    VelocityLowOpen = velocity.Velocity.LowOpenAverage,
-                    VelocityHighOpen = velocity.Velocity.HighOpenAverage
-                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical(ex, ex.Message);
             }
         }
     }

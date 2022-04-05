@@ -52,7 +52,7 @@ namespace Service.Liquidity.Velocity.Client
                 .SingleInstance();
         }
 
-        public static void MarkupVelocityClient(this ContainerBuilder builder, string grpcServiceUrl)
+        public static void RegisterMarkupVelocityService(this ContainerBuilder builder, string grpcServiceUrl)
         {
             var factory = new MarkupVelocityClientFactory(grpcServiceUrl);
             builder.RegisterInstance(factory.GetManualInputService()).As<IMarkupVelocityService>().SingleInstance();
