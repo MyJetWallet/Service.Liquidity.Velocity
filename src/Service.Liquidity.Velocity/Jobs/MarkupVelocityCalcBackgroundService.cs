@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -22,7 +23,8 @@ namespace Service.Liquidity.Velocity.Jobs
         private readonly ISpotInstrumentsDictionaryService _instrumentService;
         private readonly MyTaskTimer _operationsTimer;
         private readonly IMyNoSqlServerDataWriter<MarkupVelocityNoSql> _myNoSqlVelocityWriter;
-        private readonly IMyNoSqlServerDataWriter<MarkupVelocitySettingsNoSql> _myNoSqlVelocitySettingsReader;
+        private readonly IMyNoSqlServerDataReader<MarkupVelocitySettingsNoSql> _myNoSqlVelocitySettingsReader;
+
 #if DEBUG
         private const int TimerSpanSec = 30;
         private const uint DefaultPeriodMin = 200;
@@ -35,7 +37,7 @@ namespace Service.Liquidity.Velocity.Jobs
             ISimpleTradingCandlesHistoryGrpc candlesHistory,
             ISpotInstrumentsDictionaryService instrumentService,
             IMyNoSqlServerDataWriter<MarkupVelocityNoSql> myNoSqlVelocityWriter,
-            IMyNoSqlServerDataWriter<MarkupVelocitySettingsNoSql> myNoSqlVelocitySettingsReader)
+            IMyNoSqlServerDataReader<MarkupVelocitySettingsNoSql> myNoSqlVelocitySettingsReader)
         {
             _logger = logger;
             _candlesHistory = candlesHistory;
@@ -56,6 +58,7 @@ namespace Service.Liquidity.Velocity.Jobs
             _operationsTimer.Stop();
         }
 
+
         private async Task Process()
         {
             try
@@ -72,7 +75,7 @@ namespace Service.Liquidity.Velocity.Jobs
                     var current = DateTime.UtcNow;
                     var symbol = item.Symbol;
 
-                    var assetSettings = await _myNoSqlVelocitySettingsReader.GetAsync(item.BrokerId, asset);
+                    var assetSettings = _myNoSqlVelocitySettingsReader.Get(item.BrokerId, asset);
                     var period = assetSettings == null ? DefaultPeriodMin : assetSettings.Settings.Period;
                     var from = CalendarUtils.CountOfMinutesBefore(current, period);
                     var to = CalendarUtils.OneMinuteBefore(current);

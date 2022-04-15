@@ -15,8 +15,11 @@ namespace Service.Liquidity.Velocity.Settings
         public LogElkSettings ElkLogs { get; set; }
 
         [YamlProperty("LiquidityVelocity.MyNoSqlWriterUrl")]
-        public string MyNoSqlWriterUrl { get; set; }        
-        
+        public string MyNoSqlWriterUrl { get; set; }
+
+        [YamlProperty("LiquidityVelocity.MyNoSqlReaderHostPort")]
+        public string MyNoSqlReaderHostPort { get; set; }
+
         [YamlProperty("LiquidityVelocity.CandlesServiceGrpcUrl")]
         public string CandlesServiceGrpcUrl { get; set; }    
         

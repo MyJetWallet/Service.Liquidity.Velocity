@@ -9,6 +9,7 @@ namespace Service.Liquidity.Velocity.Grpc
     {
         [OperationContract]
         Task<SetHistoryDepthResponse> SetPeriodAsync(SetHistoryDepthRequest historyDepthRequest);
-        Task<GetVelocityResponse> GetAllVelocitiesAsync(GetVelocityRequest historyDepthRequest);
+[OperationContract]	        
+Task<GetVelocityResponse> GetAllVelocitiesAsync(GetVelocityRequest historyDepthRequest);
     }
 }
