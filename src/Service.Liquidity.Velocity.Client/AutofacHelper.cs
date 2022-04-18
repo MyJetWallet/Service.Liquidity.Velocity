@@ -1,4 +1,5 @@
-﻿using Autofac;
+﻿using System;
+using Autofac;
 using MyJetWallet.Sdk.NoSql;
 using MyNoSqlServer.DataReader;
 using Service.Liquidity.Velocity.Domain.Models.NoSql;
@@ -53,6 +54,13 @@ namespace Service.Liquidity.Velocity.Client
         }
 
         public static void RegisterMarkupVelocityService(this ContainerBuilder builder, string grpcServiceUrl)
+        {
+            var factory = new MarkupVelocityClientFactory(grpcServiceUrl);
+            builder.RegisterInstance(factory.GetManualInputService()).As<IMarkupVelocityService>().SingleInstance();
+        }
+        
+        [Obsolete("Please use RegisterMarkupVelocityService", false)]
+        public static void MarkupVelocityClient(this ContainerBuilder builder, string grpcServiceUrl)
         {
             var factory = new MarkupVelocityClientFactory(grpcServiceUrl);
             builder.RegisterInstance(factory.GetManualInputService()).As<IMarkupVelocityService>().SingleInstance();
