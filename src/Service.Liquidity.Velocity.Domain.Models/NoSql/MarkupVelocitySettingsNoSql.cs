@@ -4,7 +4,7 @@ namespace Service.Liquidity.Velocity.Domain.Models.NoSql
 {
     public class MarkupVelocitySettingsNoSql : MyNoSqlDbEntity
     {
-        public const string TableName = "myjetwallet-liquidity-markup-velocity-settings";
+        public const string TableName = "myjetwallet-markup-velocity-settings";
         public static string GeneratePartitionKey(string brokerId)  =>
             $"{brokerId}";
         public static string GenerateRowKey(string assetId) =>
