@@ -13,7 +13,7 @@ namespace Service.Liquidity.Velocity.Modules
     {
         protected override void Load(ContainerBuilder builder)
         {
-            var noSqlClient = builder.CreateNoSqlClient(Program.ReloadedSettings(e => e.MyNoSqlReaderHostPort));
+            var noSqlClient = builder.CreateNoSqlClient(Program.Settings.MyNoSqlReaderHostPort, Program.LogFactory);
             builder.RegisterMyNoSqlReader<MarkupVelocitySettingsNoSql>(noSqlClient, MarkupVelocitySettingsNoSql.TableName);
 
             builder.RegisterMyNoSqlWriter<VelocityNoSql>(
