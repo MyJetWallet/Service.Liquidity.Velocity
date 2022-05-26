@@ -96,8 +96,11 @@ namespace Service.Liquidity.Velocity.Jobs
 
                         var first = candles.FirstOrDefault();
                         var last = candles.LastOrDefault();
-                        var velocity = (Convert.ToDecimal(last?.Close) - Convert.ToDecimal(first?.Open))/Convert.ToDecimal(first?.Open) * 100;
-                        var canTrust = (candles.Count != 0 && candles.Count == period);
+                        var velocity = first != null && last != null
+                            ? (Convert.ToDecimal(last?.Close) - Convert.ToDecimal(first?.Open)) /
+                            Convert.ToDecimal(first?.Open) * 100
+                            : 0;
+                        var canTrust = candles.Count != 0 && candles.Count == period;
                         var velocityItem = CreateMyNoSqlItem(asset, velocity, period, DateTime.UtcNow, canTrust);
 
                         await _myNoSqlVelocityWriter.InsertOrReplaceAsync(MarkupVelocityNoSql.Create(item.BrokerId, velocityItem));
@@ -110,7 +113,7 @@ namespace Service.Liquidity.Velocity.Jobs
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "{@Service} failed", nameof(MarkupVelocityCalcBackgroundService));
+                _logger.LogError(ex, "{@Service} failed to process velocity", nameof(MarkupVelocityCalcBackgroundService));
             }
         }
 
